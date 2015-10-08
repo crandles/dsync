@@ -107,3 +107,20 @@ func testMutex(ctx context.Context, mutex Mutex, key string, uuid string, quick 
 	}
 	return nil
 }
+
+func ExampleETCDMutex() {
+	c, err := client.New(client.Config{Endpoints: []string{"http://localhost:2379"}})
+	if err != nil {
+		// handle ETCD client error
+	}
+	etcd = client.NewKeysAPI(c)
+	ctx := context.Background()
+	refresh := time.Second * 1
+	ttl := time.Second * 15
+	backoff := ConstantBackoff(time.Second * 2)
+
+	mutex := NewETCDMutex(ctx, etcd, "/path/to/lock/key", refresh, ttl, backoff)
+	mutex.Lock()
+	// Do work
+	mutex.Unlock()
+}
