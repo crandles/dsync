@@ -5,7 +5,10 @@ import (
 	"time"
 )
 
-type BackoffFunc func(int64) time.Duration
+// A BackoffFunc determines the backoff strategy for the associated remote call,
+// given a step 'n', the function should return the duration to sleep before
+// performing the next remote call.
+type BackoffFunc func(n int64) time.Duration
 
 // ConstantBackoff generates a simple back-off strategy of a static backoff duration
 func ConstantBackoff(d time.Duration) BackoffFunc {
