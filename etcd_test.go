@@ -40,7 +40,7 @@ func TestETCDMutexSimpleLocking(t *testing.T) {
 	resp, err := etcd.Get(ctx, key, nil)
 	if err != nil {
 		mutex.Unlock()
-		t.Fatalf("ETCD key %s was not defined correctly. Response: %s; Error: %s", key, resp, err)
+		t.Fatalf("ETCD key %s was not defined correctly. Response: %v; Error: %s", key, resp, err)
 	}
 	if resp.Node.Value != uuid {
 		mutex.Unlock()
@@ -90,7 +90,7 @@ func testMutex(ctx context.Context, mutex Mutex, key string, uuid string, quick 
 	resp, err := etcd.Get(ctx, key, nil)
 	if err != nil {
 		mutex.Unlock()
-		return fmt.Errorf("ETCD key %s was not defined correctly. Response: %s; Error: %s", key, resp, err)
+		return fmt.Errorf("ETCD key %s was not defined correctly. Response: %v; Error: %s", key, resp, err)
 	}
 	if quick {
 		mutex.Unlock()
