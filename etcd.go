@@ -92,7 +92,7 @@ func (e *etcdMutex) Unlock() {
 	e.m.Unlock()
 }
 
-// NewETCDMutex creates a new etcd-based mutex.
+// NewETCDMutex creates an etcd-based mutex.
 //
 // The refresh duration determines the interval to which a keep alive goroutine
 // will update the TTL of the lock key while a lock is held.
