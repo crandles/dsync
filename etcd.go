@@ -30,7 +30,7 @@ func (e *etcdMutex) Lock() {
 		// Wait for the lock to be unlocked.
 	}
 	e.stop = make(chan struct{})
-	options := client.SetOptions{PrevExist: client.PrevNoExist, TTL: e.ttl}
+	var options = client.SetOptions{PrevExist: client.PrevNoExist, TTL: e.ttl}
 	for i = 0; e.locked != true; i++ {
 		select {
 		case <-e.ctx.Done():
@@ -56,7 +56,7 @@ func (e *etcdMutex) Lock() {
 func (e *etcdMutex) keepAlive() {
 	e.wg.Add(1)
 	interval := time.NewTicker(e.refresh)
-	options := client.SetOptions{PrevValue: e.uuid, TTL: e.ttl}
+	var options = client.SetOptions{PrevValue: e.uuid, TTL: e.ttl}
 	for {
 		select {
 		case <-interval.C:
@@ -82,7 +82,7 @@ func (e *etcdMutex) Unlock() {
 	}
 	e.stop <- struct{}{} // Stop the TTL keepAlive goroutine.
 	e.wg.Wait()
-	options := client.DeleteOptions{PrevValue: e.uuid}
+	var options = client.DeleteOptions{PrevValue: e.uuid}
 	// Ignore any error here -- there is a chance that between stopping the keepAlive
 	// and sending the Delete that another process obtained the lock.
 	e.etcd.Delete(e.ctx, e.key, &options)
@@ -92,7 +92,7 @@ func (e *etcdMutex) Unlock() {
 }
 
 func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh time.Duration, ttl time.Duration, backoff BackoffFunc) Mutex {
-	var e etcdMutex = etcdMutex{
+	var e = etcdMutex{
 		backoff: backoff,
 		ctx:     ctx,
 		etcd:    etcd,
