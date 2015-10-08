@@ -91,6 +91,14 @@ func (e *etcdMutex) Unlock() {
 	e.m.Unlock()
 }
 
+// NewETCDMutex creates a new etcd-based mutex.
+//
+// The refresh duration determines the interval to which a keep alive goroutine
+// will update the TTL of the lock key while a lock is held.
+//
+// The ttl duration is used to set the ETCD key TTL.
+//
+// The BackoffFunc defines the back-off method to use when obtaining the remote lock.
 func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh time.Duration, ttl time.Duration, backoff BackoffFunc) Mutex {
 	var e = etcdMutex{
 		backoff: backoff,
