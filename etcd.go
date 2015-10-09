@@ -20,7 +20,6 @@ type etcdMutex struct {
 	stop    chan bool
 	ttl     time.Duration
 	uuid    string
-	wg      sync.WaitGroup
 }
 
 // NewETCDMutex creates an etcd-based mutex.
@@ -48,66 +47,63 @@ func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh 
 		etcd:    etcd,
 		key:     key,
 		refresh: refresh,
+		stop:    make(chan bool),
 		ttl:     ttl,
-		uuid:    uuid.New(),
 	}
 }
 
 func (e *etcdMutex) Lock() {
-	var i int64
 	e.m.Lock()
 	defer e.m.Unlock()
-	for e.locked != false {
-		// The lock is already held within this process.
-		// Wait for the lock to be unlocked.
-	}
-	e.stop = make(chan bool)
 	// Error if the previous value of the key is not empty.
 	options := client.SetOptions{
 		PrevExist: client.PrevNoExist,
 		TTL:       e.ttl,
 	}
-	for i = 0; e.locked != true; i++ {
+	id := uuid.New()
+	var i int64
+	for {
 		select {
 		case <-e.ctx.Done():
 			// The parent context may decide to Timeout or Cancel,
 			// in that case, stop trying to obtain the lock.
 			return
-		default:
-			if _, err := e.etcd.Set(e.ctx, e.key, e.uuid, &options); err == nil {
+		case <-time.After(e.backoff(i)):
+			if _, err := e.etcd.Set(e.ctx, e.key, id, &options); err == nil {
 				e.locked = true
-				go e.keepAlive() // Keep the lock alive by refreshing the TTL.
+				e.uuid = id
+				go e.keepAlive(id) // Keep the lock alive by refreshing the TTL.
 				return
 			}
-			if i < 0 { // Safeguard against potential overflows.
-				i = 0
-			}
-			time.Sleep(e.backoff(i))
+		}
+		i++
+		if i < 0 { // Safeguard against potential overflows. TODO: Is this needed?
+			i = 0
 		}
 	}
 }
 
-func (e *etcdMutex) keepAlive() {
-	e.wg.Add(1)
-	interval := time.NewTicker(e.refresh)
-	// Only update the TTL if the previous value is the mutex's uuid
-	options := client.SetOptions{
-		PrevValue: e.uuid,
+func (e *etcdMutex) keepAlive(id string) {
+	// Only update the TTL if the previous value is the mutex's uuid.
+	setOptions := client.SetOptions{
+		PrevValue: id,
 		TTL:       e.ttl,
+	}
+	// Only perform the delete if the previous value is the mutex's uuid.
+	deleteOptions := client.DeleteOptions{
+		PrevValue: e.uuid,
 	}
 	for {
 		select {
-		case <-interval.C:
-			e.etcd.Set(e.ctx, e.key, e.uuid, &options) // TOTDO: Should this panic on error?
+		case <-time.After(e.refresh):
+			e.etcd.Set(e.ctx, e.key, e.uuid, &setOptions) // TOTDO: Should this panic on error?
 		case <-e.stop:
-			// Unlock has been called, stop refreshing the TTL.
-			interval.Stop()
-			e.wg.Done()
+			// Unlock has been called, stop refreshing the TTL, ensure the key is deleted.
+			e.etcd.Delete(e.ctx, e.key, &deleteOptions)
 			return
 		case <-e.ctx.Done():
-			// The parent context has been canceled.
-			interval.Stop()
-			e.wg.Done()
+			// The parent context has been canceled, ensure the key is deleted.
+			e.etcd.Delete(e.ctx, e.key, &deleteOptions)
 			return
 		}
 	}
@@ -115,20 +111,11 @@ func (e *etcdMutex) keepAlive() {
 
 func (e *etcdMutex) Unlock() {
 	e.m.Lock()
+	defer e.m.Unlock()
 	if e.locked == false {
-		e.m.Unlock()
 		return // TODO: sync.Mutex would panic here. Should we?
 	}
 	e.stop <- true // Stop the TTL keepAlive goroutine.
-	e.wg.Wait()
-	// Only perform the delete if the previous value is the mutex's uuid
-	options := client.DeleteOptions{
-		PrevValue: e.uuid,
-	}
-	// Ignore any error here -- there is a chance that between stopping the keepAlive
-	// and sending the Delete that another process obtained the lock.
-	e.etcd.Delete(e.ctx, e.key, &options)
 	e.locked = false
-	close(e.stop)
-	e.m.Unlock()
+	e.uuid = ""
 }
