@@ -9,17 +9,14 @@ import (
 	"time"
 )
 
-var (
-	etcd client.KeysAPI
-)
+var etcd client.KeysAPI
 
 func init() {
 	node := os.Getenv("ETCD_NODE")
 	if node == "" {
 		node = "http://localhost:2379"
 	}
-	cfg := client.Config{Endpoints: []string{node}}
-	c, err := client.New(cfg)
+	c, err := client.New(client.Config{Endpoints: []string{node}})
 	if err != nil {
 		fmt.Println("Error establishing connection to ETCD for testing.", err)
 		os.Exit(1)
