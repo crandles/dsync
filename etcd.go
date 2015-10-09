@@ -70,8 +70,7 @@ func (e *etcdMutex) Lock() {
 			// in that case, stop trying to obtain the lock.
 			return
 		default:
-			_, err := e.etcd.Set(e.ctx, e.key, e.uuid, &options)
-			if err == nil {
+			if _, err := e.etcd.Set(e.ctx, e.key, e.uuid, &options); err == nil {
 				e.locked = true
 				break
 			}
