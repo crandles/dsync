@@ -31,7 +31,7 @@ func (e *etcdMutex) Lock() {
 	}
 	e.stop = make(chan struct{})
 	// Error if the previous value of the key is not empty.
-	var options = client.SetOptions{PrevExist: client.PrevNoExist, TTL: e.ttl}
+	options := client.SetOptions{PrevExist: client.PrevNoExist, TTL: e.ttl}
 	for i = 0; e.locked != true; i++ {
 		select {
 		case <-e.ctx.Done():
@@ -58,7 +58,7 @@ func (e *etcdMutex) keepAlive() {
 	e.wg.Add(1)
 	interval := time.NewTicker(e.refresh)
 	// Only update the TTL if the previous value is the mutex's uuid
-	var options = client.SetOptions{PrevValue: e.uuid, TTL: e.ttl}
+	options := client.SetOptions{PrevValue: e.uuid, TTL: e.ttl}
 	for {
 		select {
 		case <-interval.C:
@@ -86,7 +86,7 @@ func (e *etcdMutex) Unlock() {
 	e.stop <- struct{}{} // Stop the TTL keepAlive goroutine.
 	e.wg.Wait()
 	// Only perform the delete if the previous value is the mutex's uuid
-	var options = client.DeleteOptions{PrevValue: e.uuid}
+	options := client.DeleteOptions{PrevValue: e.uuid}
 	// Ignore any error here -- there is a chance that between stopping the keepAlive
 	// and sending the Delete that another process obtained the lock.
 	e.etcd.Delete(e.ctx, e.key, &options)
