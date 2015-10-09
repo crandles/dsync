@@ -17,7 +17,7 @@ type etcdMutex struct {
 	locked  bool
 	m       sync.Mutex
 	refresh time.Duration
-	stop    chan struct{}
+	stop    chan bool
 	ttl     time.Duration
 	uuid    string
 	wg      sync.WaitGroup
@@ -61,7 +61,7 @@ func (e *etcdMutex) Lock() {
 		// The lock is already held within this process.
 		// Wait for the lock to be unlocked.
 	}
-	e.stop = make(chan struct{})
+	e.stop = make(chan bool)
 	// Error if the previous value of the key is not empty.
 	options := client.SetOptions{
 		PrevExist: client.PrevNoExist,
@@ -119,7 +119,7 @@ func (e *etcdMutex) Unlock() {
 		e.m.Unlock()
 		return // TODO: sync.Mutex would panic here. Should we?
 	}
-	e.stop <- struct{}{} // Stop the TTL keepAlive goroutine.
+	e.stop <- true // Stop the TTL keepAlive goroutine.
 	e.wg.Wait()
 	// Only perform the delete if the previous value is the mutex's uuid
 	options := client.DeleteOptions{
