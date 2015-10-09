@@ -23,6 +23,37 @@ type etcdMutex struct {
 	wg      sync.WaitGroup
 }
 
+// NewETCDMutex creates an etcd-based mutex.
+//
+// The refresh duration determines the interval to which a keep alive goroutine
+// will update the TTL of the lock key while a lock is held.
+//
+// The ttl duration is used to set the ETCD key TTL.
+//
+// The BackoffFunc defines the back-off method to use when obtaining the remote lock.
+//
+// The Lock() function will block until it obtains a lock on the given key.
+// It will use the given BackoffFunc to determine the duration to sleep between lock attempts.
+// It will listen on the given context's Done channel,
+// and abort the locking process if the context is canceled.
+// -- If the context's Done channel is closed, the mutex will not be usable.
+//
+// The Unlock() function will block until it can free the lock.
+// If no lock is currently held by the Mutex, it will return.
+// If the lock is held by a different Mutex, it will return.
+func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh time.Duration, ttl time.Duration, backoff BackoffFunc) Mutex {
+	var e = etcdMutex{
+		backoff: backoff,
+		ctx:     ctx,
+		etcd:    etcd,
+		key:     key,
+		refresh: refresh,
+		ttl:     ttl,
+		uuid:    uuid.New(),
+	}
+	return &e
+}
+
 func (e *etcdMutex) Lock() {
 	var i int64
 	e.m.Lock()
@@ -94,35 +125,4 @@ func (e *etcdMutex) Unlock() {
 	e.locked = false
 	close(e.stop)
 	e.m.Unlock()
-}
-
-// NewETCDMutex creates an etcd-based mutex.
-//
-// The refresh duration determines the interval to which a keep alive goroutine
-// will update the TTL of the lock key while a lock is held.
-//
-// The ttl duration is used to set the ETCD key TTL.
-//
-// The BackoffFunc defines the back-off method to use when obtaining the remote lock.
-//
-// The Lock() function will block until it obtains a lock on the given key.
-// It will use the given BackoffFunc to determine the duration to sleep between lock attempts.
-// It will listen on the given context's Done channel,
-// and abort the locking process if the context is canceled.
-// -- If the context's Done channel is closed, the mutex will not be usable.
-//
-// The Unlock() function will block until it can free the lock.
-// If no lock is currently held by the Mutex, it will return.
-// If the lock is held by a different Mutex, it will return.
-func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh time.Duration, ttl time.Duration, backoff BackoffFunc) Mutex {
-	var e = etcdMutex{
-		backoff: backoff,
-		ctx:     ctx,
-		etcd:    etcd,
-		key:     key,
-		refresh: refresh,
-		ttl:     ttl,
-		uuid:    uuid.New(),
-	}
-	return &e
 }
