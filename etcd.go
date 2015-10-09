@@ -56,6 +56,7 @@ func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh 
 func (e *etcdMutex) Lock() {
 	var i int64
 	e.m.Lock()
+	defer e.m.Unlock()
 	for e.locked != false {
 		// The lock is already held within this process.
 		// Wait for the lock to be unlocked.
@@ -75,7 +76,8 @@ func (e *etcdMutex) Lock() {
 		default:
 			if _, err := e.etcd.Set(e.ctx, e.key, e.uuid, &options); err == nil {
 				e.locked = true
-				break
+				go e.keepAlive() // Keep the lock alive by refreshing the TTL.
+				return
 			}
 			if i < 0 { // Safeguard against potential overflows.
 				i = 0
@@ -83,8 +85,6 @@ func (e *etcdMutex) Lock() {
 			time.Sleep(e.backoff(i))
 		}
 	}
-	go e.keepAlive() // Keep the lock alive by refreshing the TTL.
-	e.m.Unlock()
 }
 
 func (e *etcdMutex) keepAlive() {
