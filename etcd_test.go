@@ -2,11 +2,12 @@ package dsync
 
 import (
 	"fmt"
-	"github.com/coreos/etcd/client"
-	"golang.org/x/net/context"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/coreos/etcd/client"
+	"golang.org/x/net/context"
 )
 
 var etcd client.KeysAPI

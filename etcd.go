@@ -1,11 +1,12 @@
 package dsync
 
 import (
+	"sync"
+	"time"
+
 	"github.com/coreos/etcd/client"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
-	"sync"
-	"time"
 )
 
 type etcdMutex struct {
