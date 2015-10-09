@@ -41,8 +41,8 @@ type etcdMutex struct {
 // The Unlock() function will block until it can free the lock.
 // If no lock is currently held by the Mutex, it will return.
 // If the lock is held by a different Mutex, it will return.
-func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh time.Duration, ttl time.Duration, backoff BackoffFunc) Mutex {
-	var e = etcdMutex{
+func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh time.Duration, ttl time.Duration, backoff BackoffFunc) *etcdMutex {
+	return &etcdMutex{
 		backoff: backoff,
 		ctx:     ctx,
 		etcd:    etcd,
@@ -51,7 +51,6 @@ func NewETCDMutex(ctx context.Context, etcd client.KeysAPI, key string, refresh 
 		ttl:     ttl,
 		uuid:    uuid.New(),
 	}
-	return &e
 }
 
 func (e *etcdMutex) Lock() {
