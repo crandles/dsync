@@ -34,7 +34,7 @@ func TestETCDMutexSimpleLocking(t *testing.T) {
 	backoff := ConstantBackoff(time.Second * 2)
 
 	mutex := NewETCDMutex(ctx, etcd, key, refresh, ttl, backoff)
-	uuid := mutex.(*etcdMutex).uuid
+	uuid := mutex.uuid
 	mutex.Lock()
 	resp, err := etcd.Get(ctx, key, nil)
 	if err != nil {
@@ -60,7 +60,7 @@ func BenchmarkETCDSerialMutexLockingWithVerification(b *testing.B) {
 	ttl := time.Second * 15
 	backoff := ConstantBackoff(time.Second * 2)
 	mutex := NewETCDMutex(ctx, etcd, key, refresh, ttl, backoff)
-	uuid := mutex.(*etcdMutex).uuid
+	uuid := mutex.uuid
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -76,7 +76,7 @@ func BenchmarkETCDSerialMutexLockingWithoutVerification(b *testing.B) {
 	ttl := time.Second * 15
 	backoff := ConstantBackoff(time.Second * 2)
 	mutex := NewETCDMutex(ctx, etcd, key, refresh, ttl, backoff)
-	uuid := mutex.(*etcdMutex).uuid
+	uuid := mutex.uuid
 	b.StartTimer()
 
 	for i := 0; i < b.N; i++ {
