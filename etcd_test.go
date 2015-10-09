@@ -16,7 +16,7 @@ func init() {
 	if node == "" {
 		node = "http://localhost:2379"
 	}
-	
+
 	c, err := client.New(client.Config{Endpoints: []string{node}})
 	if err != nil {
 		fmt.Println("Error establishing connection to ETCD for testing.", err)
