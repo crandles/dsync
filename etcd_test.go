@@ -3,6 +3,7 @@ package dsync
 import (
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,7 +85,7 @@ func BenchmarkETCDSerialMutexLockingWithoutVerification(b *testing.B) {
 	}
 }
 
-func testMutex(ctx context.Context, mutex Mutex, key string, uuid string, quick bool) error {
+func testMutex(ctx context.Context, mutex sync.Locker, key string, uuid string, quick bool) error {
 	mutex.Lock()
 	resp, err := etcd.Get(ctx, key, nil)
 	if err != nil {
